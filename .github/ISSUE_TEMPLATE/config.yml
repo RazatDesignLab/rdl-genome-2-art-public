@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security Vulnerability
+    url: https://github.com/RazatDesignLab/genome-2-art/security/advisories/new
+    about: Report security issues privately (do not open public issues for vulnerabilities)
+  - name: Questions & Discussion
+    url: https://github.com/RazatDesignLab/genome-2-art/discussions
+    about: Ask questions or share your genome art creations

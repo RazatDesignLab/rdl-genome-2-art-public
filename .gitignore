@@ -1,0 +1,45 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Private genetic data - NEVER commit these
+AncestryDNA.txt
+AncestryDNA*.txt
+!AncestryDNA_mock.txt
+23andMe*.txt
+*.23andme
+dna-data*.zip
+raw_dna*.txt
+
+# Temporary files
+*.tmp
+~*
+
+# Output files (optional - you may want to keep some)
+# *.html
+# output/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Distribution
+dist/
+build/
+*.egg-info/
