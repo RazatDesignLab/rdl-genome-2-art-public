@@ -4,11 +4,126 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import plotly.io as pio
 import kaleido
+import argparse
+import sys
+import os
+
+# ─── Color Palette Definitions ───────────────────────────────────────────────
+COLOR_PALETTES = {
+    'scientific': [
+        [0.0, '#000000'],   # Black for background
+        [0.1, '#001133'],   # Very dark blue
+        [0.2, '#003366'],   # Dark blue-cyan
+        [0.3, '#0066AA'],   # Medium blue-cyan
+        [0.4, '#00BFFF'],   # Pure cyan blue
+        [0.5, '#7F5FFF'],   # Cyan-magenta blend
+        [0.6, '#BF3FFF'],   # Blue-magenta blend
+        [0.7, '#FF00FF'],   # Pure magenta
+        [0.8, '#FF66FF'],   # Light magenta
+        [0.9, '#FFAAFF'],   # Very light magenta
+        [1.0, '#010000'],   # Near-black for highlights
+    ],
+    'ocean': [
+        [0.0, '#000000'],
+        [0.1, '#000A1A'],
+        [0.2, '#001A3A'],
+        [0.3, '#003366'],
+        [0.4, '#005599'],
+        [0.5, '#0077BB'],
+        [0.6, '#0099DD'],
+        [0.7, '#33BBEE'],
+        [0.8, '#66DDFF'],
+        [0.9, '#AAEEFF'],
+        [1.0, '#DDFAFF'],
+    ],
+    'fire': [
+        [0.0, '#000000'],
+        [0.1, '#1A0000'],
+        [0.2, '#4D0000'],
+        [0.3, '#800000'],
+        [0.4, '#B30000'],
+        [0.5, '#E60000'],
+        [0.6, '#FF3300'],
+        [0.7, '#FF6600'],
+        [0.8, '#FF9933'],
+        [0.9, '#FFCC66'],
+        [1.0, '#FFE599'],
+    ],
+    'nebula': [
+        [0.0, '#000000'],
+        [0.1, '#0D0015'],
+        [0.2, '#1A002A'],
+        [0.3, '#330055'],
+        [0.4, '#550088'],
+        [0.5, '#7700AA'],
+        [0.6, '#9933CC'],
+        [0.7, '#BB66DD'],
+        [0.8, '#DD99EE'],
+        [0.9, '#EEBBF5'],
+        [1.0, '#F8DDFA'],
+    ],
+    'earth': [
+        [0.0, '#000000'],
+        [0.1, '#1A0F00'],
+        [0.2, '#332200'],
+        [0.3, '#554400'],
+        [0.4, '#776622'],
+        [0.5, '#998844'],
+        [0.6, '#AA9955'],
+        [0.7, '#BBAA66'],
+        [0.8, '#CCBB88'],
+        [0.9, '#DDCCAA'],
+        [1.0, '#EEDDCC'],
+    ],
+    'aurora': [
+        [0.0, '#000000'],
+        [0.1, '#001111'],
+        [0.2, '#002222'],
+        [0.3, '#004433'],
+        [0.4, '#006644'],
+        [0.5, '#008855'],
+        [0.6, '#00AA66'],
+        [0.7, '#33CC77'],
+        [0.8, '#66EE88'],
+        [0.9, '#99FF99'],
+        [1.0, '#CCFFCC'],
+    ],
+    'infrared': [
+        [0.0, '#000000'],
+        [0.1, '#0A0010'],
+        [0.2, '#1A0033'],
+        [0.3, '#2D0055'],
+        [0.4, '#440077'],
+        [0.5, '#5500AA'],
+        [0.6, '#7733BB'],
+        [0.7, '#9966CC'],
+        [0.8, '#BB99DD'],
+        [0.9, '#CCAAEE'],
+        [1.0, '#E0CCF5'],
+    ],
+}
+
+
+def get_palette_legend_colors(palette_name):
+    """Extract representative low and high colors from a palette for legends."""
+    palette = COLOR_PALETTES[palette_name]
+    low_color = palette[4][1]   # Position 0.4 — low intensity
+    high_color = palette[7][1]  # Position 0.7 — high intensity
+    return low_color, high_color
+
 
 def load_ancestry_data(filepath):
-    """Load AncestryDNA raw data file"""
-    df = pd.read_csv(filepath, sep='\t', comment='#',
-                     names=['rsid', 'chromosome', 'position', 'allele1', 'allele2'])
+    """Load AncestryDNA raw data file.
+
+    Handles both tab-delimited (real AncestryDNA exports) and
+    whitespace-delimited (mock/test) files robustly.
+    """
+    df = pd.read_csv(filepath, sep=r'\s+', comment='#',
+                     names=['rsid', 'chromosome', 'position', 'allele1', 'allele2'],
+                     engine='python', dtype={'chromosome': str})
+
+    # Drop header rows read as data
+    df = df[df['rsid'] != 'rsid']
 
     # Clean and convert data
     df['chromosome'] = df['chromosome'].astype(str).str.replace('chr', '')
@@ -56,9 +171,10 @@ def create_circos_plot(df, max_snps=2000):
     print(f"Creating CIRCOS plot from genome data...")
 
     if len(df) > max_snps:
-        df_sample = df.groupby('chromosome').apply(
-            lambda x: x.sample(n=max(1, min(len(x), max_snps // 24)))
-        ).reset_index(drop=True)
+        df_sample = pd.concat([
+            group.sample(n=max(1, min(len(group), max_snps // 24)))
+            for _, group in df.groupby('chromosome')
+        ]).reset_index(drop=True)
     else:
         df_sample = df
 
@@ -172,9 +288,10 @@ def create_snp_distribution_plot(df, max_snps=3000):
     print(f"Creating SNP distribution plot...")
 
     if len(df) > max_snps:
-        df_sample = df.groupby('chromosome').apply(
-            lambda x: x.sample(n=max(1, min(len(x), max_snps // 24)))
-        ).reset_index(drop=True)
+        df_sample = pd.concat([
+            group.sample(n=max(1, min(len(group), max_snps // 24)))
+            for _, group in df.groupby('chromosome')
+        ]).reset_index(drop=True)
     else:
         df_sample = df
 
@@ -286,9 +403,10 @@ def create_enhanced_quantum_iris(df, max_snps=3000, resolution=500):
 
     if len(df) > max_snps:
         # Sample across all chromosomes proportionally
-        df_sample = df.groupby('chromosome').apply(
-            lambda x: x.sample(n=max(1, min(len(x), max_snps // 24)))
-        ).reset_index(drop=True)
+        df_sample = pd.concat([
+            group.sample(n=max(1, min(len(group), max_snps // 24)))
+            for _, group in df.groupby('chromosome')
+        ]).reset_index(drop=True)
     else:
         df_sample = df
 
@@ -464,8 +582,29 @@ def analyze_genome_uniqueness(df):
 
 # Usage example
 if __name__ == "__main__":
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(
+        description='Genome-2-Art: Transform genetic data into quantum wave art'
+    )
+    parser.add_argument('-i', '--input', default='AncestryDNA_mock.txt',
+                        help='Input file path (default: AncestryDNA_mock.txt)')
+    parser.add_argument('-p', '--palette', default='scientific',
+                        choices=COLOR_PALETTES.keys(),
+                        help='Color palette name (default: scientific)')
+    parser.add_argument('--list-palettes', action='store_true',
+                        help='Display available palettes and exit')
+    args = parser.parse_args()
+
+    # Handle --list-palettes
+    if args.list_palettes:
+        print("Available color palettes:")
+        for name in COLOR_PALETTES:
+            low, high = get_palette_legend_colors(name)
+            print(f"  {name:12s}  low={low}  high={high}")
+        sys.exit(0)
+
     # Load genome data
-    df = load_ancestry_data('AncestryDNA_mock.txt') #replce mock file with complete dna file
+    df = load_ancestry_data(args.input)
 
     print(f"Loaded {len(df):,} SNPs from your genome")
 
@@ -485,20 +624,8 @@ if __name__ == "__main__":
     snp_traces = create_snp_distribution_plot(df)
     iris_pattern, phase_pattern, x, y, snps_used, intensity, texture_complexity = create_enhanced_quantum_iris(df, resolution=600)
 
-    # Create scientific colorscale using cyan blue and magenta
-    scientific_colorscale = [
-        [0.0, '#000000'],   # Black for background
-        [0.1, '#001133'],   # Very dark blue
-        [0.2, '#003366'],   # Dark blue-cyan
-        [0.3, '#0066AA'],   # Medium blue-cyan
-        [0.4, '#00BFFF'],   # Pure cyan blue
-        [0.5, '#7F5FFF'],   # Cyan-magenta blend
-        [0.6, '#BF3FFF'],   # Blue-magenta blend
-        [0.7, '#FF00FF'],   # Pure magenta
-        [0.8, '#FF66FF'],   # Light magenta
-        [0.9, '#FFAAFF'],   # Very light magenta
-        [1.0, "#010000"]    # White for highlights
-    ]
+    # Get selected colorscale from palette
+    selected_colorscale = COLOR_PALETTES[args.palette]
 
     # Create the 2x2 figure with adjusted spacing - bottom plots moved down 3%
     fig = make_subplots(
@@ -532,7 +659,7 @@ if __name__ == "__main__":
             z=iris_pattern,
             x=x,
             y=y,
-            colorscale=scientific_colorscale,
+            colorscale=selected_colorscale,
             name="Quantum Iris",
             hovertemplate="Position: (%{x:.1f}, %{y:.1f})<br>Iris Pattern: %{z:.4f}<extra></extra>",
             showscale=False
@@ -540,13 +667,17 @@ if __name__ == "__main__":
         row=2, col=1
     )
 
-    # Add wave phase field (bottom right) with inverted scientific colorscale for more cyan
+    # Invert phase pattern but keep background areas black (mapped to 0)
+    wave_display = 1.0 - phase_pattern
+    wave_display[phase_pattern == 0] = 0
+
+    # Add wave phase field (bottom right) with inverted colorscale for more contrast
     fig.add_trace(
         go.Heatmap(
-            z=1.0 - phase_pattern,  # Invert to show more cyan
+            z=wave_display,
             x=x,
             y=y,
-            colorscale=scientific_colorscale,
+            colorscale=selected_colorscale,
             name="Wave Phase",
             hovertemplate="Position: (%{x:.1f}, %{y:.1f})<br>Wave Phase: %{z:.4f}<extra></extra>",
             showscale=False
@@ -681,9 +812,12 @@ if __name__ == "__main__":
         borderpad=8  # Added padding for better spacing from plot titles
     )
 
+    # Get dynamic legend colors from selected palette
+    legend_low_color, legend_high_color = get_palette_legend_colors(args.palette)
+
     # Legend for Iris (bottom left) - below the plot
     fig.add_annotation(
-        text="<b style='color:#00BFFF'>Low Intensity</b> ← → <b style='color:#FF00FF'>High Intensity</b><br><i>Scientific Genome Pattern Visualization</i>",
+        text=f"<b style='color:{legend_low_color}'>Low Intensity</b> ← → <b style='color:{legend_high_color}'>High Intensity</b><br><i>{args.palette.capitalize()} Genome Pattern Visualization</i>",
         x=0.24, y=bottom_legend_y,
         xref="paper", yref="paper",
         showarrow=False,
@@ -696,7 +830,7 @@ if __name__ == "__main__":
 
     # Legend for Wave Phase (bottom right) - below the plot
     fig.add_annotation(
-        text="<b style='color:#00BFFF'>Wave Minimum</b> ← → <b style='color:#FF00FF'>Wave Maximum</b><br><i>Quantum Wave Interference Phases</i>",
+        text=f"<b style='color:{legend_low_color}'>Wave Minimum</b> ← → <b style='color:{legend_high_color}'>Wave Maximum</b><br><i>Quantum Wave Interference Phases</i>",
         x=0.76, y=bottom_legend_y,
         xref="paper", yref="paper",
         showarrow=False,
@@ -722,71 +856,62 @@ if __name__ == "__main__":
 
     print(f"   • Clean HTML output without embedded documentation")
 
-# Export the full suite as high-res images
-import os
-os.makedirs("art", exist_ok=True)
+    # Export the full suite as high-res images
+    os.makedirs("art", exist_ok=True)
 
-# Verify kaleido is available
-try:
-    import kaleido
-    print(f"✓ Kaleido engine available")
-except ImportError as e:
-    print(f"✗ Kaleido not found: {e}")
-
-# Create standalone Wave Phase Field figure for export
-wave_fig = go.Figure()
-wave_fig.add_trace(
-    go.Heatmap(
-        z=1.0 - phase_pattern,  # Invert to show more cyan
-        x=x,
-        y=y,
-        colorscale=scientific_colorscale,
-        showscale=False
+    # Create standalone Wave Phase Field figure for export
+    wave_fig = go.Figure()
+    wave_fig.add_trace(
+        go.Heatmap(
+            z=wave_display,
+            x=x,
+            y=y,
+            colorscale=selected_colorscale,
+            showscale=False
+        )
     )
-)
 
-wave_fig.update_layout(
-    title="Wave Phase Field",
-    paper_bgcolor='#111111',
-    plot_bgcolor='#111111',
-    font=dict(color='white', size=12),
-    height=800,
-    width=800,
-    margin=dict(t=50, b=50, l=50, r=50),
-    showlegend=False
-)
+    wave_fig.update_layout(
+        title="Wave Phase Field",
+        paper_bgcolor='#000000',
+        plot_bgcolor='#000000',
+        font=dict(color='white', size=12),
+        height=800,
+        width=800,
+        margin=dict(t=50, b=50, l=50, r=50),
+        showlegend=False
+    )
 
-wave_fig.update_xaxes(
-    showticklabels=False, showgrid=False, zeroline=False,
-    showline=False, range=[-15, 15]
-)
-wave_fig.update_yaxes(
-    showticklabels=False, showgrid=False, zeroline=False,
-    showline=False, range=[-15, 15]
-)
+    wave_fig.update_xaxes(
+        showticklabels=False, showgrid=False, zeroline=False,
+        showline=False, range=[-15, 15]
+    )
+    wave_fig.update_yaxes(
+        showticklabels=False, showgrid=False, zeroline=False,
+        showline=False, range=[-15, 15]
+    )
 
-try:
-    wave_fig.write_image("art/genome-2-art.svg", width=1200, height=1200, engine="kaleido")
-    print(f"   • Wave Phase Field SVG: art/genome-2-art.svg (vector format)")
-except Exception as e:
-    print(f"   • SVG export failed: {e}")
+    try:
+        wave_fig.write_image("art/genome-2-art.svg", width=1200, height=1200)
+        print(f"   • Wave Phase Field SVG: art/genome-2-art.svg (vector format)")
+    except Exception as e:
+        print(f"   • SVG export failed: {e}")
 
-try:
-    wave_fig.write_image("art/genome-2-art.png", width=1200, height=1200, engine="kaleido")
-    print(f"   • Wave Phase Field PNG: art/genome-2-art.png (high-res raster)")
-except Exception as e:
-    print(f"   • PNG export failed: {e}")
+    try:
+        wave_fig.write_image("art/genome-2-art.png", width=1200, height=1200)
+        print(f"   • Wave Phase Field PNG: art/genome-2-art.png (high-res raster)")
+    except Exception as e:
+        print(f"   • PNG export failed: {e}")
 
-print(f"\n💾 Export Complete:")
-print(f"   • Full suite HTML: genome-2-art.html")
-print(f"\n📐 Improvements Made:")
-print(f"   • Black background with white text for better contrast")
-print(f"   • Legends moved below each plot to prevent overlap")
-print(f"   • Tighter spacing with uniform plot sizing")
-print(f"   • Scientific cyan-magenta colorscale for genome visualization")
-print(f"   • Wave Phase plot inverted to show more cyan blue")
-print(f"   • Added detailed color explanation section below plots in HTML")
-print(f"   • Reduced text overlap and improved readability")
-print(f"   • Consistent axis ranges for better visual balance")
-print(f"   • All quantum interference patterns preserved at full resolution")
-print(f"   • Color scheme matches scientific standards for genomic data")
+    print(f"\n💾 Export Complete:")
+    print(f"   • Full suite HTML: genome-2-art.html")
+    print(f"   • Color palette: {args.palette}")
+    print(f"\n📐 Improvements Made:")
+    print(f"   • Black background with white text for better contrast")
+    print(f"   • Legends moved below each plot to prevent overlap")
+    print(f"   • Tighter spacing with uniform plot sizing")
+    print(f"   • {args.palette.capitalize()} colorscale for genome visualization")
+    print(f"   • Wave Phase plot inverted to show more cyan blue")
+    print(f"   • Consistent axis ranges for better visual balance")
+    print(f"   • All quantum interference patterns preserved at full resolution")
+    print(f"   • Color scheme matches scientific standards for genomic data")

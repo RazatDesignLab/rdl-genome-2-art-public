@@ -10,53 +10,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Enhanced Color Palette System**: 7 scientifically-inspired color palettes for quantum wave visualization
-  - `scientific`: Cyan-magenta gradient for scientific accuracy
+  - `scientific`: Cyan-magenta gradient (default)
   - `ocean`: Deep ocean blues to white
   - `fire`: Black to red to golden yellow
   - `nebula`: Deep space purples to light pink
   - `earth`: Dark earth tones to cream
   - `aurora`: Night sky teals to bright greens
   - `infrared`: Deep purples to pale lavender
-- **Command-line Color Palette Support**:
-  - `-p, --palette` flag to select color schemes
-  - `--list-palettes` option to display available palettes
-- **Dynamic Legend System**: Legends now automatically adapt to show actual colors from selected palette
-- **Enhanced Virtual Environment Support**: Complete setup with Python 3.13.2 compatibility
-- **High-Resolution Export**: Black background support for both PNG and SVG exports
+- **Command-line Interface** via argparse:
+  - `-i, --input` flag to specify input file (default: `AncestryDNA_mock.txt`)
+  - `-p, --palette` flag to select color schemes (default: `scientific`)
+  - `--list-palettes` option to display available palettes with representative colors
+- **Dynamic Legend System**: Iris and Wave Phase Field legends automatically adapt colors and label text to match the selected palette
+- **High-Resolution Export**: Black background support for both PNG and SVG exports across all palettes
 
 ### Fixed
 
-- **Critical Background Rendering Bug**: Wave Phase Field now displays proper black backgrounds instead of unwanted white backgrounds
-- **Data Loading Compatibility**: Improved AncestryDNA file parsing for both mock and real genetic data files
-- **Visualization Sampling Issues**: Fixed chromosome column preservation during data sampling for large datasets
-- **Legend Color Accuracy**: Legends now reflect actual palette colors instead of hardcoded cyan/magenta
-- **Export Background Consistency**: Standalone PNG/SVG files now maintain black backgrounds matching the main visualization
+- **Wave Phase Field Background Bug**: Inverted phase pattern (`1.0 - phase`) caused background areas to map to the top of the colorscale instead of black; now correctly masks background to 0 before display
+- **Data Loading Compatibility**: Switched to `sep=r'\s+'` with `engine='python'` and `dtype={'chromosome': str}` to handle both tab-delimited (real AncestryDNA) and whitespace-delimited (mock) files; filters out header rows read as data
+- **Pandas 3.0 Sampling Compatibility**: Replaced `groupby().apply()` sampling with `pd.concat` pattern to preserve chromosome column in pandas 3.0+
+- **Legend Color Accuracy**: Legends now pull dynamic low/high colors from the active palette instead of hardcoded `#00BFFF`/`#FF00FF`
+- **Export Background Consistency**: Standalone PNG/SVG `paper_bgcolor` and `plot_bgcolor` changed from `#111111` to `#000000` to match the main visualization
+- **Export Block Scope**: Moved image export code inside `if __name__ == "__main__"` block (was previously at module level, causing `NameError` on import)
+- **Deprecated Kaleido Engine Argument**: Removed `engine="kaleido"` from `write_image()` calls to silence deprecation warnings
 
 ### Improved
 
 - **Genetic Data Processing**: Successfully handles 650,230+ SNPs from real AncestryDNA files
-- **Privacy Protection**: Virtual environment (`venv/`) properly excluded from Git commits via .gitignore
-- **Code Organization**: Enhanced color palette management with centralized COLOR_PALETTES dictionary
-- **User Experience**: Better error handling and debug information for data loading
-- **Visual Quality**: Consistent black backgrounds across all plot types and export formats
-
-### Technical Details
-
-- **Python Version**: Compatible with Python 3.13.2
-- **Dependencies**: All packages from requirements.txt installed successfully
-  - kaleido (visualization export)
-  - plotly (interactive plotting)
-  - pandas (data manipulation)
-  - numpy (numerical computing)
-  - matplotlib (plotting backend)
-  - seaborn (statistical visualization)
-- **Data Security**: Real genetic data (AncestryDNA.txt) protected by .gitignore patterns
-- **Performance**: Optimized sampling for large datasets while preserving chromosome information
+- **Privacy Protection**: `.gitignore` updated to exclude generated genome art output (`art/genome-2-art.png`, `art/genome-2-art.svg`) and git backups
+- **Code Organization**: Centralized `COLOR_PALETTES` dictionary at module level with `get_palette_legend_colors()` helper
 
 ### Usage Examples
 
 ```bash
-# Use default scientific palette
+# Use default scientific palette with mock data
+python genome-2-art_v2.py
+
+# Use with real DNA data
 python genome-2-art_v2.py -i AncestryDNA.txt
 
 # Use ocean color palette
@@ -64,25 +54,12 @@ python genome-2-art_v2.py -i AncestryDNA.txt -p ocean
 
 # List all available palettes
 python genome-2-art_v2.py --list-palettes
-
-# Use with virtual environment
-source venv/bin/activate && python genome-2-art_v2.py -i AncestryDNA.txt -p fire
 ```
 
 ### Files Changed
 
-- `genome-2-art_v2.py`: Major enhancements to color system and bug fixes
-- `.gitignore`: Already properly configured for virtual environments
-- `requirements.txt`: All dependencies verified and working
-- `art/genome-2-art.png`: Export functionality improved with black backgrounds
-- `art/genome-2-art.svg`: Vector export with proper background rendering
-
-### Development Environment
-
-- **Virtual Environment**: `venv/` directory created with Python 3.13.2
-- **Package Management**: All dependencies installed via pip
-- **Git Integration**: Virtual environment properly excluded from version control
-- **Cross-platform**: Compatible with macOS, tested on Apple Silicon
+- `genome-2-art_v2.py`: Color palette system, CLI arguments, data loading fixes, export fixes
+- `.gitignore`: Added generated art output and git backup exclusions
 
 ---
 
