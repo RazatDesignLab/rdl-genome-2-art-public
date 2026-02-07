@@ -28,6 +28,13 @@ AncestryDNA*.txt
 dna-data*.zip
 raw_dna*.txt
 
+# Generated genome art output (may contain personal genetic data)
+art/genome-2-art.png
+art/genome-2-art.svg
+
+# Git backup
+.git-backup/
+
 # Temporary files
 *.tmp
 ~*
