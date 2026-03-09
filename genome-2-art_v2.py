@@ -5,8 +5,10 @@ from plotly.subplots import make_subplots
 import plotly.io as pio
 import kaleido
 import argparse
+import glob
 import sys
 import os
+import webbrowser
 
 # ─── Color Palette Definitions ───────────────────────────────────────────────
 COLOR_PALETTES = {
@@ -24,82 +26,89 @@ COLOR_PALETTES = {
         [1.0, '#010000'],   # Near-black for highlights
     ],
     'ocean': [
-        [0.0, '#000000'],
-        [0.1, '#000A1A'],
-        [0.2, '#001A3A'],
-        [0.3, '#003366'],
-        [0.4, '#005599'],
-        [0.5, '#0077BB'],
-        [0.6, '#0099DD'],
-        [0.7, '#33BBEE'],
-        [0.8, '#66DDFF'],
-        [0.9, '#AAEEFF'],
-        [1.0, '#DDFAFF'],
+        # 0.4 = vivid deep blue → 0.9 = warm tropical sand (~171° hue shift, cool→warm)
+        [0.0, '#000000'],   # Deep sea black
+        [0.1, '#000B22'],   # Abyssal dark
+        [0.2, '#001444'],   # Midnight ocean
+        [0.3, '#002D88'],   # Deep ocean
+        [0.4, '#0044CC'],   # Vivid ocean blue
+        [0.5, '#2277BB'],   # Medium blue
+        [0.6, '#55AAAA'],   # Teal transition
+        [0.7, '#99BB88'],   # Warm sea green
+        [0.8, '#DDCC88'],   # Sandy gold
+        [0.9, '#FFEEAA'],   # Warm tropical sand
+        [1.0, '#FFF5E0'],   # Bright highlight
     ],
     'fire': [
-        [0.0, '#000000'],
-        [0.1, '#1A0000'],
-        [0.2, '#4D0000'],
-        [0.3, '#800000'],
-        [0.4, '#B30000'],
-        [0.5, '#E60000'],
-        [0.6, '#FF3300'],
-        [0.7, '#FF6600'],
-        [0.8, '#FF9933'],
-        [0.9, '#FFCC66'],
-        [1.0, '#FFE599'],
+        # 0.4 = deep saturated red → 0.9 = pale yellow (~60° hue shift + huge lightness jump)
+        [0.0, '#000000'],   # Ash black
+        [0.1, '#200000'],   # Near-black ember
+        [0.2, '#550000'],   # Very dark red
+        [0.3, '#990000'],   # Dark red
+        [0.4, '#CC0000'],   # Bright fire red
+        [0.5, '#EE3300'],   # Red-orange flame
+        [0.6, '#FF7700'],   # Orange flame
+        [0.7, '#FFAA00'],   # Amber flame
+        [0.8, '#FFDD55'],   # Golden flame
+        [0.9, '#FFFF99'],   # Pale yellow flame
+        [1.0, '#FFFFF0'],   # White-hot
     ],
     'nebula': [
-        [0.0, '#000000'],
-        [0.1, '#0D0015'],
-        [0.2, '#1A002A'],
-        [0.3, '#330055'],
-        [0.4, '#550088'],
-        [0.5, '#7700AA'],
-        [0.6, '#9933CC'],
-        [0.7, '#BB66DD'],
-        [0.8, '#DD99EE'],
-        [0.9, '#EEBBF5'],
-        [1.0, '#F8DDFA'],
+        # 0.4 = muted lavender (LOCKED) → 0.9 = deep violet (LOCKED)
+        # Contrast: dramatic saturation shift (28% → 92%) as colors deepen
+        [0.0, '#000000'],   # Deep space black
+        [0.1, '#0A0015'],   # Near-black space
+        [0.2, '#1D0035'],   # Dark nebula
+        [0.3, '#3A0A6A'],   # Deep violet nebula
+        [0.4, '#8D7BB6'],   # Muted lavender (keep)
+        [0.5, '#7A68A8'],   # Deeper lavender
+        [0.6, '#6A48A0'],   # Medium-deep violet
+        [0.7, '#5A1F8A'],   # Darker violet
+        [0.8, '#6005B0'],   # Deep violet
+        [0.9, '#6207BD'],   # Deep bright violet (keep)
+        [1.0, '#D4AAFF'],   # Bright nebula highlight/stars
     ],
     'earth': [
-        [0.0, '#000000'],
-        [0.1, '#1A0F00'],
-        [0.2, '#332200'],
-        [0.3, '#554400'],
-        [0.4, '#776622'],
-        [0.5, '#998844'],
-        [0.6, '#AA9955'],
-        [0.7, '#BBAA66'],
-        [0.8, '#CCBB88'],
-        [0.9, '#DDCCAA'],
-        [1.0, '#EEDDCC'],
+        # 0.4 = rich soil brown → 0.9 = pale sage green (~98° hue shift, warm→cool)
+        [0.0, '#000000'],   # Dark earth shadow
+        [0.1, '#110800'],   # Near-black soil
+        [0.2, '#291500'],   # Very dark earth
+        [0.3, '#4D2A0A'],   # Dark soil
+        [0.4, '#664411'],   # Rich soil brown
+        [0.5, '#7A6622'],   # Olive-brown
+        [0.6, '#7A8833'],   # Olive green
+        [0.7, '#88AA55'],   # Sage green
+        [0.8, '#99BB88'],   # Light sage
+        [0.9, '#AACCAA'],   # Pale sage
+        [1.0, '#C8E8C8'],   # Highland green
     ],
     'aurora': [
-        [0.0, '#000000'],
-        [0.1, '#001111'],
-        [0.2, '#002222'],
-        [0.3, '#004433'],
-        [0.4, '#006644'],
-        [0.5, '#008855'],
-        [0.6, '#00AA66'],
-        [0.7, '#33CC77'],
-        [0.8, '#66EE88'],
-        [0.9, '#99FF99'],
-        [1.0, '#CCFFCC'],
+        # 0.4 = vivid emerald green → 0.9 = aurora pink (~182° hue shift, cool path through violet)
+        [0.0, '#000000'],   # Night sky black
+        [0.1, '#001108'],   # Near-black with green
+        [0.2, '#002211'],   # Very dark night green
+        [0.3, '#005533'],   # Dark emerald
+        [0.4, '#00AA55'],   # Vivid aurora green
+        [0.5, '#00BBAA'],   # Teal aurora
+        [0.6, '#5599EE'],   # Blue aurora
+        [0.7, '#AA66DD'],   # Violet aurora
+        [0.8, '#EE88CC'],   # Pink-violet aurora
+        [0.9, '#FFAADD'],   # Aurora pink
+        [1.0, '#FFDDEE'],   # Pale pink shimmer
     ],
     'infrared': [
-        [0.0, '#000000'],
-        [0.1, '#0A0010'],
-        [0.2, '#1A0033'],
-        [0.3, '#2D0055'],
-        [0.4, '#440077'],
-        [0.5, '#5500AA'],
-        [0.6, '#7733BB'],
-        [0.7, '#9966CC'],
-        [0.8, '#BB99DD'],
-        [0.9, '#CCAAEE'],
-        [1.0, '#E0CCF5'],
+        # 0.4 = deep violet (cold) → 0.9 = warm amber (~240° hue shift, matches real IR false-color)
+        [0.0, '#000000'],   # Absolute cold/black
+        [0.1, '#08001A'],   # Near-black cold
+        [0.2, '#1A0033'],   # Very cold violet
+        [0.3, '#300055'],   # Cold deep violet
+        [0.4, '#440077'],   # Infrared cold (violet)
+        [0.5, '#7722AA'],   # Medium purple-magenta
+        [0.6, '#BB3388'],   # Magenta-rose
+        [0.7, '#EE6644'],   # Warm coral
+        [0.8, '#FFBB66'],   # Hot amber
+        [0.9, '#FFDD99'],   # Very hot pale amber
+        [1.0, '#FFEECC'],   # Maximum hot
     ],
 }
 
@@ -107,9 +116,29 @@ COLOR_PALETTES = {
 def get_palette_legend_colors(palette_name):
     """Extract representative low and high colors from a palette for legends."""
     palette = COLOR_PALETTES[palette_name]
-    low_color = palette[4][1]   # Position 0.4 — low intensity
-    high_color = palette[7][1]  # Position 0.7 — high intensity
+    low_color = palette[4][1]   # Position 0.4 — low-mid intensity
+    high_color = palette[9][1]  # Position 0.9 — high intensity
     return low_color, high_color
+
+
+def find_dna_file():
+    """Auto-detect a real AncestryDNA file, falling back to mock data."""
+    # Priority 1: standard Ancestry export filename
+    candidates = ['AncestryDNA.txt']
+
+    # Priority 2: any AncestryDNA*.txt that isn't the mock
+    for f in sorted(glob.glob('AncestryDNA*.txt')):
+        if '_mock' not in f and f not in candidates:
+            candidates.append(f)
+
+    # Priority 3: explicit fallback
+    candidates.append('AncestryDNA_mock.txt')
+
+    for f in candidates:
+        if os.path.exists(f):
+            return f
+
+    return None
 
 
 def load_ancestry_data(filepath):
@@ -586,8 +615,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description='Genome-2-Art: Transform genetic data into quantum wave art'
     )
-    parser.add_argument('-i', '--input', default='AncestryDNA_mock.txt',
-                        help='Input file path (default: AncestryDNA_mock.txt)')
+    parser.add_argument('-i', '--input', default=None,
+                        help='Input file path (auto-detected if not specified)')
     parser.add_argument('-p', '--palette', default='scientific',
                         choices=COLOR_PALETTES.keys(),
                         help='Color palette name (default: scientific)')
@@ -603,8 +632,19 @@ if __name__ == "__main__":
             print(f"  {name:12s}  low={low}  high={high}")
         sys.exit(0)
 
+    # Resolve input file: use provided path or auto-detect
+    if args.input:
+        input_file = args.input
+    else:
+        input_file = find_dna_file()
+        if input_file is None:
+            print("Error: No DNA file found. Place AncestryDNA.txt in the current directory or use -i to specify a path.")
+            sys.exit(1)
+        label = "(mock data)" if '_mock' in input_file else "(real DNA data)"
+        print(f"Auto-detected input file: {input_file} {label}")
+
     # Load genome data
-    df = load_ancestry_data(args.input)
+    df = load_ancestry_data(input_file)
 
     print(f"Loaded {len(df):,} SNPs from your genome")
 
@@ -915,3 +955,13 @@ if __name__ == "__main__":
     print(f"   • Consistent axis ranges for better visual balance")
     print(f"   • All quantum interference patterns preserved at full resolution")
     print(f"   • Color scheme matches scientific standards for genomic data")
+
+    # Automatically open the HTML file in the default browser
+    html_path = os.path.abspath("genome-2-art.html")
+    print(f"\n🌐 Opening genome-2-art.html in your default browser...")
+    try:
+        webbrowser.open(f"file://{html_path}")
+        print(f"   • Browser launched successfully!")
+    except Exception as e:
+        print(f"   • Failed to open browser: {e}")
+        print(f"   • Please manually open: {html_path}")

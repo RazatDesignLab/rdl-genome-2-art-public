@@ -5,6 +5,25 @@ All notable changes to the Genome-2-Art project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.1] - 2026-02-19
+
+### Improved
+
+- **Color Palette Contrast**: Redesigned all non-default palettes so there is strong hue contrast between the `0.4` and `0.9` color stops, matching the structural logic of the `scientific` default (vivid saturated mid-tone at 0.4 → light or contrasting-hue pastel at 0.9). Previously most palettes stayed within the same hue family and only varied in lightness, resulting in low visual contrast in the rendered plots.
+  - `ocean`: Deep ocean blue (`#0044CC`) → warm tropical sand (`#FFEEAA`) — ~171° hue shift via teal/seafoam transition
+  - `fire`: Deep red (`#CC0000`) → pale yellow (`#FFFF99`) — full red→orange→amber→yellow arc
+  - `nebula`: Locked `0.4` (`#8D7BB6` muted lavender) and `0.9` (`#6207BD` deep violet) per user intent; replaced incoherent intermediate stops (random cyans/oranges) with a coherent dark-space-to-deep-violet progression; contrast expressed as saturation shift (28% → 92%)
+  - `earth`: Rich soil brown (`#664411`) → pale sage green (`#AACCAA`) — ~98° hue shift via olive transition
+  - `aurora`: Vivid emerald green (`#00AA55`) → aurora pink (`#FFAADD`) — ~182° hue shift via cool path (green → teal → blue → violet → pink)
+  - `infrared`: Cold violet (`#440077`) → hot amber (`#FFDD99`) — ~240° hue shift, mirrors real thermal IR false-color imaging
+
+### Files Changed
+
+- `CHANGELOG.md`: Added 2.1.1 entry
+- `genome-2-art_v2.py`: Updated `COLOR_PALETTES` for ocean, fire, nebula, earth, aurora, and infrared
+
+---
+
 ## [2.1.0] - 2025-02-07
 
 ### Added
